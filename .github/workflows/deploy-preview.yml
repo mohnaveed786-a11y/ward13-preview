@@ -1,3 +1,4 @@
+
 name: Ward 13 Web Preview
 
 on:
@@ -23,19 +24,39 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-     - name: Install Godot Web export templates
+
+      - name: Install Godot Web export templates
         run: |
-          wget -q https://github.com/godotengine/godot-builds/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz -O /tmp/templates.tpz
+          set -eu
+
+          apt-get update
+          apt-get install -y wget unzip
+
+          wget -q \
+            https://github.com/godotengine/godot-builds/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz \
+            -O /tmp/templates.tpz
+
+          mkdir -p /tmp/godot-templates
+          unzip -q /tmp/templates.tpz -d /tmp/godot-templates
+
           mkdir -p /github/home/.local/share/godot/export_templates/4.3.stable
-          unzip -q /tmp/templates.tpz 'templates/*' -d /tmp/godot-templates
-          cp /tmp/godot-templates/templates/* /github/home/.local/share/godot/export_templates/4.3.stable/
+
+          cp -a /tmp/godot-templates/templates/. \
+            /github/home/.local/share/godot/export_templates/4.3.stable/
+
+          test -s /github/home/.local/share/godot/export_templates/4.3.stable/web_nothreads_release.zip
+
       - name: Import assets
-        run: godot --headless --editor --path . --import
+        run: |
+          godot --headless --editor --path . --import
 
       - name: Export Godot web preview
         run: |
           mkdir -p build/web
-          godot --headless --path . --export-release "Web" build/web/index.html
+
+          godot --headless --path . \
+            --export-release "Web" build/web/index.html
+
           test -s build/web/index.html
           test -s build/web/index.wasm
 
@@ -47,6 +68,7 @@ jobs:
   deploy:
     runs-on: ubuntu-24.04
     needs: build
+
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -55,3 +77,4 @@ jobs:
       - id: deployment
         name: Deploy preview
         uses: actions/deploy-pages@v4
+
