@@ -1,43 +1,51 @@
 name: Ward 13 Web Preview
+
 on:
   push:
     branches: [main]
   workflow_dispatch:
+
 permissions:
   contents: read
   pages: write
   id-token: write
+
 concurrency:
   group: pages
   cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-24.04
     container:
       image: barichello/godot-ci:4.3
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Import assets
-        working-directory: game
         run: godot --headless --editor --path . --import
+
       - name: Export Godot web preview
-        working-directory: game
         run: |
-          mkdir -p ../build/web
-          godot --headless --path . --export-release "Web" ../build/web/index.html
-          test -s ../build/web/index.html
-          test -s ../build/web/index.wasm
+          mkdir -p build/web
+          godot --headless --path . --export-release "Web" build/web/index.html
+          test -s build/web/index.html
+          test -s build/web/index.wasm
+
       - name: Upload preview
         uses: actions/upload-pages-artifact@v3
         with:
           path: build/web
+
   deploy:
     runs-on: ubuntu-24.04
     needs: build
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+
     steps:
       - id: deployment
         name: Deploy preview
